@@ -135,7 +135,7 @@ export default function RegistrationForm() {
       if (res.ok) {
         setFormData(INITIAL_FORM_DATA)
         setCurrentStep(1)
-        toast.success('Registration submitted and emailed successfully!')
+        toast.success('Registration submitted successfully!')
         scrollToTop()
       } else {
         console.error('Server responded with', res.status)
