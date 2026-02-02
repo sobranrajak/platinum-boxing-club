@@ -1,31 +1,37 @@
 import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 import nodemailer from 'nodemailer'
 import { generateRegistrationHtml } from '@/lib/generate-pdf-html'
 
-// Generate PDF buffer from HTML using Puppeteer
+// Generate PDF buffer from HTML using Puppeteer + serverless Chromium (Vercel compatible)
 async function generatePdfBuffer(data: any): Promise<Buffer> {
   // Generate HTML directly
   const html = await generateRegistrationHtml(data)
 
-  // Dynamically import Puppeteer at runtime (avoid bundler resolving it in dev build)
-  const puppeteer = (await import('puppeteer')).default
-  // Launch Puppeteer
+  // Use a Lambda / Vercel–compatible Chromium build
+  const chromium = (await import('@sparticuz/chromium-min')).default as any
+  const puppeteer = (await import('puppeteer-core')).default
+
+  const executablePath = await chromium.executablePath()
+
   const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: executablePath || undefined,
+    headless: chromium.headless,
   })
 
   try {
     const page = await browser.newPage()
-    
+
     // Set content and wait for page to load
     await page.setContent(html, { waitUntil: 'load' })
-    
+
     // Wait a bit for fonts to render (using Promise-based delay)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
     // Generate PDF with proper settings
     const pdfBuffer = await page.pdf({
       format: 'A4',
