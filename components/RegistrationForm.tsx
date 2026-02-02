@@ -54,37 +54,39 @@ interface FormData {
   agreeToTerms: boolean
 }
 
+const INITIAL_FORM_DATA: FormData = {
+  name: "",
+  email: "",
+  gender: "",
+  dob: "",
+  occupation: "",
+  date: "",
+  emergencyContact: "",
+  phone: "",
+  relationship: "",
+  emergencyPhone: "",
+  address: "",
+  healthConditions: "",
+  previousInjuries: "",
+  currentMedications: "",
+  doctorName: "",
+  doctorContact: "",
+  photosConsent: "",
+  childrenConsent: "",
+  participationFees: "",
+  equipmentConsent: "",
+  participantName: "",
+  participantSignature: "",
+  participantSignatureDate: "",
+  parentGuardianName: "",
+  parentGuardianSignature: "",
+  parentGuardianSignatureDate: "",
+  agreeToTerms: false,
+}
+
 export default function RegistrationForm() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-    gender: "",
-    dob: "",
-    occupation: "",
-    date: "",
-    emergencyContact: "",
-    phone: "",
-    relationship: "",
-    emergencyPhone: "",
-    address: "",
-    healthConditions: "",
-    previousInjuries: "",
-    currentMedications: "",
-    doctorName: "",
-    doctorContact: "",
-    photosConsent: "",
-    childrenConsent: "",
-    participationFees: "",
-    equipmentConsent: "",
-    participantName: "",
-    participantSignature: "",
-    participantSignatureDate: "",
-    parentGuardianName: "",
-    parentGuardianSignature: "",
-    parentGuardianSignatureDate: "",
-    agreeToTerms: false,
-  })
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA)
 
   const [signatureVisible, setSignatureVisible] = useState(false)
   const [isParentSignature, setIsParentSignature] = useState(false)
@@ -96,15 +98,23 @@ export default function RegistrationForm() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const scrollToTop = () => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
   const nextStep = () => {
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1)
+      scrollToTop()
     }
   }
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
+      scrollToTop()
     }
   }
 
@@ -123,7 +133,10 @@ export default function RegistrationForm() {
       })
 
       if (res.ok) {
+        setFormData(INITIAL_FORM_DATA)
+        setCurrentStep(1)
         toast.success('Registration submitted and emailed successfully!')
+        scrollToTop()
       } else {
         console.error('Server responded with', res.status)
         toast.error('Submission failed. Please try again later.')
@@ -148,6 +161,10 @@ export default function RegistrationForm() {
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-4xl mx-auto">
+        <Toaster
+          position="top-right"
+          toastOptions={{ duration: 5000 }}
+        />
         {/* Header */}
         <div className="text-center mb-8">
           <Image src="/platinum-boxing-logo.jpeg" alt="Platinum Boxing Club Logo" width={150} height={150} className="mx-auto mb-4 rounded-full" />
@@ -337,7 +354,6 @@ interface StepProps {
 function PersonalDetailsStep({ formData, updateFormData }: StepProps) {
   return (
     <div className="space-y-6">
-      <Toaster position="top-right" />
       <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
         Personal Details
       </h2>

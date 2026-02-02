@@ -208,7 +208,7 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
   ) => {
     const paddingX = 10
     const paddingY = 9
-    const labelGap = 6
+    const labelGap = 3
     const lineHeight = 13
     const maxLines = opts.lines ?? 2
 
@@ -256,7 +256,8 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
     }
 
     return {
-      heightUsed: theme.fonts.label + labelGap + boxHeight + 12,
+      // a little extra space below the box so the next label is not too close
+      heightUsed: theme.fonts.label + labelGap + boxHeight + 20,
     }
   }
 
@@ -266,7 +267,7 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
   ) => {
     const paddingX = 10
     const paddingY = 10
-    const labelGap = 6
+    const labelGap = 4
     const boxHeight = 110
 
     ctx.page.drawText(opts.label, {
@@ -298,7 +299,7 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
         font: fontRegular,
         color: theme.colors.muted,
       })
-      return { heightUsed: theme.fonts.label + labelGap + boxHeight + 12 }
+      return { heightUsed: theme.fonts.label + labelGap + boxHeight + 18 }
     }
 
     try {
@@ -331,7 +332,7 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
       })
     }
 
-    return { heightUsed: theme.fonts.label + labelGap + boxHeight + 12 }
+    return { heightUsed: theme.fonts.label + labelGap + boxHeight + 18 }
   }
 
   const drawPill = (ctx: PageCtx, opts: { x: number; y: number; text: string }) => {
