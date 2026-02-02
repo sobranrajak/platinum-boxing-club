@@ -360,7 +360,7 @@ function PersonalDetailsStep({ formData, updateFormData }: StepProps) {
             value={formData.email}
             onChange={(e) => updateFormData("email", e.target.value)}
           />
-          <p className="text-xs text-muted-foreground">Print clearly</p>
+          {/* <p className="text-xs text-muted-foreground">Print clearly</p> */}
         </div>
 
         <div className="space-y-2">
@@ -478,7 +478,7 @@ function HealthDeclarationStep({ formData, updateFormData }: StepProps) {
         <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
           Health Declaration
         </h2>
-        <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+        <p className="text-sm text-black/90 mt-3 leading-relaxed">
           I, the above Applicant, hereby declare that I am fit and in excellent
           health condition to participate in boxing, kickboxing and or boxercise
           activities and that I am not on any medication or taking any form of
@@ -573,7 +573,7 @@ function TermsConditionsStep({ formData, updateFormData }: StepProps) {
         <h3 className="font-medium text-foreground">
           Photos and Video Footage
         </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-black/90 leading-relaxed">
           I understand and consent to photographs and or videos being taken of
           myself or my child/children while I/they train or participate in
           activities at Platinum Boxing Club and that this footage may be used
@@ -603,7 +603,7 @@ function TermsConditionsStep({ formData, updateFormData }: StepProps) {
       {/* Children */}
       <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
         <h3 className="font-medium text-foreground">Children</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-black/90 leading-relaxed">
           I understand that if I bring my children to any classes that I or
           other family members are participating in. I will CONTROL and accept
           FULL responsibility of any injury incurred to my child or other
@@ -640,7 +640,7 @@ function TermsConditionsStep({ formData, updateFormData }: StepProps) {
       {/* Participation Fees */}
       <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
         <h3 className="font-medium text-foreground">Participation Fees</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-black/90 leading-relaxed">
           I understand that my participation with the Platinum Boxing Club is
           dependent upon me paying my fees and that my fees must be paid prior
           to my participation with Platinum Boxing Club and that after my first
@@ -679,7 +679,7 @@ function TermsConditionsStep({ formData, updateFormData }: StepProps) {
         <h3 className="font-medium text-foreground">
           Gloves/Hand Wraps/Equipment
         </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-black/90 leading-relaxed">
           I understand that the use of the Platinum Boxing Club Gloves, Hand
           Wraps and equipment by myself or my child/children is at my own risk
           and that I will take every step to ensure I employ safe hygiene
@@ -726,7 +726,7 @@ function ReleaseOfLiabilityStep({ formData, updateFormData, setSignatureVisible,
         Release of Liability
       </h2>
 
-      <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+      <div className="space-y-4 text-sm text-black/90 leading-relaxed">
         <p>
           In consideration of the acceptance of my application as a participant
           to the Platinum Boxing Club Training, events or Classes I hereby agree
@@ -766,9 +766,9 @@ function ReleaseOfLiabilityStep({ formData, updateFormData, setSignatureVisible,
 
       {/* Participant Section */}
       <div className="space-y-4 pt-4 border-t border-border">
-        <h3 className="font-medium text-foreground">
+        {/* <h3 className="font-medium text-foreground">
           Participant&apos;s Name (please print):
-        </h3>
+        </h3> */}
         <Input
           placeholder="Enter your full name"
           value={formData.participantName}
@@ -844,9 +844,9 @@ function ReleaseOfLiabilityStep({ formData, updateFormData, setSignatureVisible,
           behalf of the minor named herein.
         </p>
 
-        <h3 className="font-medium text-foreground">
+        {/* <h3 className="font-medium text-foreground">
           Parent/Guardian&apos;s Name (please print):
-        </h3>
+        </h3> */}
         <Input
           placeholder="Enter parent/guardian's full name"
           value={formData.parentGuardianName}
