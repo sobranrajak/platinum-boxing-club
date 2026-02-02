@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, Check } from "lucide-react"
+import { ChevronLeft, ChevronRight, Check, PenTool, X } from "lucide-react"
 import Image from "next/image"
+import SignatureCanvas from "react-signature-canvas"
 
 const STEPS = [
   { id: 1, title: "Personal Details" },
@@ -44,8 +45,10 @@ interface FormData {
   equipmentConsent: string
   // Release of Liability
   participantName: string
+  participantSignature: string
   participantSignatureDate: string
   parentGuardianName: string
+  parentGuardianSignature: string
   parentGuardianSignatureDate: string
   agreeToTerms: boolean
 }
@@ -74,11 +77,19 @@ export default function RegistrationForm() {
     participationFees: "",
     equipmentConsent: "",
     participantName: "",
+    participantSignature: "",
     participantSignatureDate: "",
     parentGuardianName: "",
+    parentGuardianSignature: "",
     parentGuardianSignatureDate: "",
     agreeToTerms: false,
   })
+
+  const [signatureVisible, setSignatureVisible] = useState(false)
+  const [isParentSignature, setIsParentSignature] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const signatureRef = React.useRef<SignatureCanvas>(null)
 
   const updateFormData = (field: keyof FormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -96,9 +107,41 @@ export default function RegistrationForm() {
     }
   }
 
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData)
-    alert("Registration submitted successfully!")
+  const handleSubmit = async () => {
+    if (!formData.agreeToTerms) {
+      alert('Please agree to the terms before submitting.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/send-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      if (res.ok) {
+        alert('Registration submitted and emailed successfully!')
+      } else {
+        console.error('Server responded with', res.status)
+        alert('Submission failed. Please try again later.')
+      }
+    } catch (err) {
+      console.error('Submission error', err)
+      alert('Submission failed. Please try again later.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleSignature = (signature: string) => {
+    if (isParentSignature) {
+      updateFormData("parentGuardianSignature", signature)
+    } else {
+      updateFormData("participantSignature", signature)
+    }
+    setSignatureVisible(false)
   }
 
   return (
@@ -183,6 +226,8 @@ export default function RegistrationForm() {
               <ReleaseOfLiabilityStep
                 formData={formData}
                 updateFormData={updateFormData}
+                setSignatureVisible={setSignatureVisible}
+                setIsParentSignature={setIsParentSignature}
               />
             )}
 
@@ -205,16 +250,73 @@ export default function RegistrationForm() {
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  disabled={!formData.agreeToTerms}
+                  disabled={!formData.agreeToTerms || isSubmitting}
                   className="gap-2"
                 >
-                  Submit Registration
+                  {isSubmitting ? 'Sending...' : 'Submit Registration'}
                   <Check className="w-4 h-4" />
                 </Button>
               )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Signature Dialog */}
+        {signatureVisible && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50" 
+              onClick={() => setSignatureVisible(false)}
+            />
+            
+            {/* Dialog */}
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full mx-4 relative z-10">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                {isParentSignature ? "Parent/Guardian Signature" : "Participant Signature"}
+              </h3>
+              <div className="border-2 border-primary rounded-lg bg-white">
+                <SignatureCanvas
+                  ref={signatureRef}
+                  penColor="black"
+                  canvasProps={{
+                    width: 500,
+                    height: 200,
+                    className: "w-full h-auto touch-none",
+                  }}
+                />
+              </div>
+              <div className="flex justify-between gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    signatureRef.current?.clear()
+                  }}
+                >
+                  Clear
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSignatureVisible(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const signature = signatureRef.current?.getTrimmedCanvas().toDataURL()
+                      if (signature) {
+                        handleSignature(signature)
+                      }
+                    }}
+                  >
+                    Save Signature
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
@@ -617,7 +719,7 @@ function TermsConditionsStep({ formData, updateFormData }: StepProps) {
   )
 }
 
-function ReleaseOfLiabilityStep({ formData, updateFormData }: StepProps) {
+function ReleaseOfLiabilityStep({ formData, updateFormData, setSignatureVisible, setIsParentSignature }: StepProps & { setSignatureVisible: (visible: boolean) => void, setIsParentSignature: (isParent: boolean) => void }) {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
@@ -673,17 +775,61 @@ function ReleaseOfLiabilityStep({ formData, updateFormData }: StepProps) {
           onChange={(e) => updateFormData("participantName", e.target.value)}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Participant&apos;s Signature Date:</Label>
-            <Input
-              type="date"
-              value={formData.participantSignatureDate}
-              onChange={(e) =>
-                updateFormData("participantSignatureDate", e.target.value)
-              }
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Participant&apos;s Signature:</Label>
+          {formData.participantSignature ? (
+            <div className="space-y-2">
+              <div className="border-2 border-primary rounded-lg p-2 bg-white relative">
+                <img 
+                  src={formData.participantSignature} 
+                  alt="Participant Signature" 
+                  className="h-24 w-full object-contain"
+                />
+                <Button
+                  onClick={() => updateFormData("participantSignature", "")}
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 bg-white text-black hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                onClick={() => {
+                  setIsParentSignature(false)
+                  setSignatureVisible(true)
+                }}
+                variant="ghost"
+                size="sm"
+                className="w-full"
+              >
+                Re-sign
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => {
+                setIsParentSignature(false)
+                setSignatureVisible(true)
+              }}
+              variant="outline"
+              className="w-full gap-2"
+            >
+              <PenTool className="w-4 h-4" />
+              Click to Sign
+            </Button>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Participant&apos;s Signature Date:</Label>
+          <Input
+            type="date"
+            value={formData.participantSignatureDate}
+            onChange={(e) =>
+              updateFormData("participantSignatureDate", e.target.value)
+            }
+          />
         </div>
         <p className="text-xs text-muted-foreground italic">
           (Parent/Guardian signature required if under 18 years of age - see
@@ -707,17 +853,61 @@ function ReleaseOfLiabilityStep({ formData, updateFormData }: StepProps) {
           onChange={(e) => updateFormData("parentGuardianName", e.target.value)}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Parent/Guardian Signature Date:</Label>
-            <Input
-              type="date"
-              value={formData.parentGuardianSignatureDate}
-              onChange={(e) =>
-                updateFormData("parentGuardianSignatureDate", e.target.value)
-              }
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Parent/Guardian Signature:</Label>
+          {formData.parentGuardianSignature ? (
+            <div className="space-y-2">
+              <div className="border-2 border-primary rounded-lg p-2 bg-white relative">
+                <img 
+                  src={formData.parentGuardianSignature} 
+                  alt="Parent/Guardian Signature" 
+                  className="h-24 w-full object-contain"
+                />
+                <Button
+                  onClick={() => updateFormData("parentGuardianSignature", "")}
+                  // variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 bg-white text-black hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                onClick={() => {
+                  setIsParentSignature(true)
+                  setSignatureVisible(true)
+                }}
+                variant="ghost"
+                size="sm"
+                className="w-full"
+              >
+                Re-sign
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => {
+                setIsParentSignature(true)
+                setSignatureVisible(true)
+              }}
+              variant="outline"
+              className="w-full gap-2"
+            >
+              <PenTool className="w-4 h-4" />
+              Click to Sign
+            </Button>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Parent/Guardian Signature Date:</Label>
+          <Input
+            type="date"
+            value={formData.parentGuardianSignatureDate}
+            onChange={(e) =>
+              updateFormData("parentGuardianSignatureDate", e.target.value)
+            }
+          />
         </div>
       </div>
 
