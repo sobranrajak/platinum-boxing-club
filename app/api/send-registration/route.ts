@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 
-import puppeteer from 'puppeteer'
 import nodemailer from 'nodemailer'
 import { generateRegistrationHtml } from '@/lib/generate-pdf-html'
 
@@ -10,6 +9,8 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
   // Generate HTML directly
   const html = await generateRegistrationHtml(data)
 
+  // Dynamically import Puppeteer at runtime (avoid bundler resolving it in dev build)
+  const puppeteer = (await import('puppeteer')).default
   // Launch Puppeteer
   const browser = await puppeteer.launch({
     headless: true,
