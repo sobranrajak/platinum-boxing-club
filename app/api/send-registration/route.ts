@@ -1,98 +1,47 @@
 import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 
-import PDFDocument from 'pdfkit'
+import puppeteer from 'puppeteer'
 import nodemailer from 'nodemailer'
+import { generateRegistrationHtml } from '@/lib/generate-pdf-html'
 
-// Simple helper to generate PDF buffer from submitted data
+// Generate PDF buffer from HTML using Puppeteer
 async function generatePdfBuffer(data: any): Promise<Buffer> {
-  const doc = new PDFDocument({ size: 'A4', margin: 50 })
-  const buffers: Uint8Array[] = []
-  doc.on('data', (chunk) => buffers.push(chunk))
+  // Generate HTML directly
+  const html = await generateRegistrationHtml(data)
 
-  doc.fontSize(18).text('Platinum Boxing Club Registration', { align: 'center' })
-  doc.moveDown()
-
-  doc.fontSize(12)
-  const writeField = (label: string, value: any) => {
-    doc.font('Helvetica-Bold').text(`${label}: `, { continued: true })
-    doc.font('Helvetica').text(value ?? '')
-  }
-
-  // Personal details
-  doc.moveDown()
-  doc.fontSize(14).text('Personal Details')
-  doc.moveDown(0.5)
-  writeField('Name', data.name)
-  writeField('Email', data.email)
-  writeField('Gender', data.gender)
-  writeField('Date of Birth', data.dob)
-  writeField('Phone', data.phone)
-  writeField('Address', data.address)
-
-  doc.moveDown()
-  doc.fontSize(14).text('Health Declaration')
-  doc.moveDown(0.5)
-  writeField('Health Conditions', data.healthConditions)
-  writeField('Previous Injuries', data.previousInjuries)
-  writeField('Current Medications', data.currentMedications)
-  writeField('Doctor Name', data.doctorName)
-  writeField('Doctor Contact', data.doctorContact)
-
-  doc.addPage()
-  doc.fontSize(14).text('Terms & Release')
-  doc.moveDown(0.5)
-  writeField('Photos Consent', data.photosConsent)
-  writeField('Children Consent', data.childrenConsent)
-  writeField('Participation Fees', data.participationFees)
-  writeField('Equipment Consent', data.equipmentConsent)
-
-  doc.moveDown()
-  doc.fontSize(14).text('Release of Liability')
-  doc.moveDown(0.5)
-
-  writeField('Participant Name', data.participantName)
-
-  // Signatures
-  if (data.participantSignature) {
-    try {
-      const base64 = data.participantSignature.split(',')[1]
-      const img = Buffer.from(base64, 'base64')
-      doc.moveDown()
-      doc.font('Helvetica-Bold').text('Participant Signature:')
-      doc.image(img, { fit: [250, 100] })
-    } catch (e) {
-      // ignore image errors
-    }
-  }
-
-  writeField('Participant Signature Date', data.participantSignatureDate)
-  writeField('Parent/Guardian Name', data.parentGuardianName)
-
-  if (data.parentGuardianSignature) {
-    try {
-      const base64 = data.parentGuardianSignature.split(',')[1]
-      const img = Buffer.from(base64, 'base64')
-      doc.moveDown()
-      doc.font('Helvetica-Bold').text('Parent/Guardian Signature:')
-      doc.image(img, { fit: [250, 100] })
-    } catch (e) {
-      // ignore image errors
-    }
-  }
-
-  writeField('Parent/Guardian Signature Date', data.parentGuardianSignatureDate)
-
-  doc.moveDown(2)
-  doc.fontSize(10).text(`Form generated: ${new Date().toLocaleString()}`)
-
-  doc.end()
-
-  return new Promise<Buffer>((resolve) => {
-    doc.on('end', () => {
-      resolve(Buffer.concat(buffers as any))
-    })
+  // Launch Puppeteer
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   })
+
+  try {
+    const page = await browser.newPage()
+    
+    // Set content and wait for page to load
+    await page.setContent(html, { waitUntil: 'load' })
+    
+    // Wait a bit for fonts to render (using Promise-based delay)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // Generate PDF with proper settings
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm',
+      },
+      printBackground: true,
+      preferCSSPageSize: false,
+    })
+
+    return Buffer.from(pdfBuffer)
+  } finally {
+    await browser.close()
+  }
 }
 
 export async function POST(req: Request) {
@@ -103,8 +52,8 @@ export async function POST(req: Request) {
 
     // Configure transporter using environment variables
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST || 'smtp.gmail.com',
-      port: Number(process.env.MAIL_PORT) || 587,
+      host: process.env.MAIL_HOST,
+      port: Number(process.env.MAIL_PORT),
       secure: false,
       auth: {
         user: process.env.MAIL_ID,
@@ -114,7 +63,7 @@ export async function POST(req: Request) {
 
     const mailOptions = {
       from: process.env.MAIL_ID,
-      to: process.env.MAIL_ID, // send to admin; adjust as needed
+      to: process.env.ADMIN_MAIL_ID,
       subject: `New registration from ${data.name ?? 'Unknown'}`,
       text: `A new registration was submitted by ${data.name ?? 'Unknown'}. See attached PDF.`,
       attachments: [

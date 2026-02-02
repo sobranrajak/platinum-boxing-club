@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, Check, PenTool, X } from "lucide-react"
 import Image from "next/image"
 import SignatureCanvas from "react-signature-canvas"
+import toast, { Toaster } from 'react-hot-toast';
 
 const STEPS = [
   { id: 1, title: "Personal Details" },
@@ -109,7 +110,7 @@ export default function RegistrationForm() {
 
   const handleSubmit = async () => {
     if (!formData.agreeToTerms) {
-      alert('Please agree to the terms before submitting.')
+      toast.error('Please agree to the terms before submitting.')
       return
     }
 
@@ -122,14 +123,14 @@ export default function RegistrationForm() {
       })
 
       if (res.ok) {
-        alert('Registration submitted and emailed successfully!')
+        toast.success('Registration submitted and emailed successfully!')
       } else {
         console.error('Server responded with', res.status)
-        alert('Submission failed. Please try again later.')
+        toast.error('Submission failed. Please try again later.')
       }
     } catch (err) {
       console.error('Submission error', err)
-      alert('Submission failed. Please try again later.')
+      toast.error('Submission failed. Please try again later.')
     } finally {
       setIsSubmitting(false)
     }
@@ -336,6 +337,7 @@ interface StepProps {
 function PersonalDetailsStep({ formData, updateFormData }: StepProps) {
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
       <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
         Personal Details
       </h2>
