@@ -11,7 +11,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, Check, PenTool, X } from "lucide-react"
 import Image from "next/image"
 import SignatureCanvas from "react-signature-canvas"
-import toast, { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast'
+import PaymentDetailsForm from "./PaymentDetailsForm"
+import type { PaymentFormData } from "./PaymentDetailsForm"
 
 const STEPS = [
   { id: 1, title: "Personal Details" },
@@ -91,6 +93,7 @@ export default function RegistrationForm() {
   const [signatureVisible, setSignatureVisible] = useState(false)
   const [isParentSignature, setIsParentSignature] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
 
   const signatureRef = React.useRef<SignatureCanvas>(null)
 
@@ -124,18 +127,28 @@ export default function RegistrationForm() {
       return
     }
 
+    // Show payment form instead of submitting immediately
+    setShowPaymentForm(true)
+    scrollToTop()
+  }
+
+  const handlePaymentSubmit = async (paymentData: PaymentFormData) => {
     setIsSubmitting(true)
     try {
       const res = await fetch('/api/send-registration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          registration: formData,
+          payment: paymentData,
+        }),
       })
 
       if (res.ok) {
         setFormData(INITIAL_FORM_DATA)
         setCurrentStep(1)
-        toast.success('Registration submitted successfully!')
+        setShowPaymentForm(false)
+        toast.success('Registration and payment details submitted successfully!')
         scrollToTop()
       } else {
         console.error('Server responded with', res.status)
@@ -149,6 +162,11 @@ export default function RegistrationForm() {
     }
   }
 
+  const handleBackFromPayment = () => {
+    setShowPaymentForm(false)
+    scrollToTop()
+  }
+
   const handleSignature = (signature: string) => {
     if (isParentSignature) {
       updateFormData("parentGuardianSignature", signature)
@@ -156,6 +174,28 @@ export default function RegistrationForm() {
       updateFormData("participantSignature", signature)
     }
     setSignatureVisible(false)
+  }
+
+  if (showPaymentForm) {
+    return (
+      <>
+        <Toaster
+          position="top-right"
+          toastOptions={{ duration: 5000 }}
+        />
+        <PaymentDetailsForm
+          registrationData={{
+            name: formData.name,
+            email: formData.email,
+            address: formData.address,
+            dob: formData.dob,
+            phone: formData.phone,
+          }}
+          onBack={handleBackFromPayment}
+          onSubmit={handlePaymentSubmit}
+        />
+      </>
+    )
   }
 
   return (

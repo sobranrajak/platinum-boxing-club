@@ -611,7 +611,12 @@ async function generatePdfBuffer(data: any): Promise<Buffer> {
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json()
+    const body = await req.json()
+    
+    // Support both old format (direct data) and new format (registration + payment)
+    const registration = body.registration || body
+    const payment = body.payment
+    const data = registration
 
     const pdfBuffer = await generatePdfBuffer(data)
 
@@ -626,11 +631,19 @@ export async function POST(req: Request) {
       },
     })
 
+    const mailSubject = payment 
+      ? `New registration & payment from ${data.name ?? 'Unknown'}`
+      : `New registration from ${data.name ?? 'Unknown'}`
+    
+    const mailText = payment
+      ? `A new registration and payment details were submitted by ${data.name ?? 'Unknown'}.\n\nPayment Details:\n- Amount: $${payment.regularDebitAmount}\n- Frequency: ${payment.paymentFrequency}\n- Payment Method: ${payment.paymentMethodType}\n\nSee attached PDF.`
+      : `A new registration was submitted by ${data.name ?? 'Unknown'}. See attached PDF.`
+
     const mailOptions = {
       from: process.env.MAIL_ID,
       to: process.env.ADMIN_MAIL_ID,
-      subject: `New registration from ${data.name ?? 'Unknown'}`,
-      text: `A new registration was submitted by ${data.name ?? 'Unknown'}. See attached PDF.`,
+      subject: mailSubject,
+      text: mailText,
       attachments: [
         {
           filename: `registration-${Date.now()}.pdf`,
